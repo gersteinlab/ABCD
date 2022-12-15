@@ -1,16 +1,18 @@
 
-# Installation
 # ABCD
 This is the code base for adolecent brain cognitive developmental studies for the paper {Paper Tiltle}. 
 * Contributor: Yunyang Li, Jason Liu, Yuan Gao
 
-Requirements:
+## Requirements:
+```
 * Numpy
 * Sklearn
 * Sktime
 * tsai
+```
 
-Installation:
+
+## Installation:
 ```
 pip install -e .
 ```
