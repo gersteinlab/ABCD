@@ -1,7 +1,0 @@
-
-# Installation
-
-
-```
-pip install -e .
-```
