@@ -5,8 +5,8 @@ This is the code base for adolecent brain cognitive developmental studies for th
 
 ## Requirements:
 ```
-Sktime
-tsai
+tsai==0.3.1
+sktime==0.14.1
 ```
 
 
@@ -24,4 +24,15 @@ conda activate ABCD
 Install ABCD and requirements
 ```
 pip install -e . --user
+```
+
+## Example Running:
+cd into the ABCD folder:
+```
+cd ABCD
+```
+
+Run model with default settings:
+```
+python run.py 
 ```
