@@ -1,6 +1,6 @@
-import argparser
+import argparse
 import os
-import torch
+# import torch
 import random
 from ABCD.preprocess.preprocessing import *
 
@@ -101,4 +101,6 @@ def parse_args(jupyter=False):
 def test():
     config = parse_args()
     process_data(config)
-    
+
+if __name__ == '__main__':
+    test()    
