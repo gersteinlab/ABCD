@@ -5,14 +5,23 @@ This is the code base for adolecent brain cognitive developmental studies for th
 
 ## Requirements:
 ```
-* Numpy
-* Sklearn
-* Sktime
-* tsai
+Sktime
+tsai
 ```
 
 
 ## Installation:
+Create a conda environment with python 3.7:
 ```
-pip install -e .
+conda create -n ABCD python=3.7
+```
+Activate the environment:
+
+```
+conda activate ABCD
+```
+
+Install ABCD and requirements
+```
+pip install -e . --user
 ```
