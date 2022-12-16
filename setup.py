@@ -13,7 +13,13 @@ setup(name='ABCD',
     #   ],
       packages=find_packages(),
       install_requires=[
-          'tsai=0.3.4',
-          'sktime=0.14.1',
+          'tsai==0.3.1',
+          'sktime==0.14.1',
+          'matplotlib',
+          'pandas',
+          'sklearn',
+          'tqdm',
+          'IPython',
+          'ipykenel'
       ],)
     #   python_requires='>=3.7,<3.11')

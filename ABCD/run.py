@@ -2,7 +2,9 @@ import argparse
 import os
 # import torch
 import random
+import numpy as np
 from ABCD.preprocess.preprocessing import *
+from ABCD.train.trainer import *
 
 def seed_everything(seed):
     random.seed(seed)
@@ -16,6 +18,7 @@ def seed_everything(seed):
 def parse_args(jupyter=False):
     parser = argparse.ArgumentParser()
     ######################## DATA Loading ########################
+    parser.add_argument('--preprocess', type = bool, default=False, help='preprocess the data or not')
     parser.add_argument('--group', type=str, default='adhd', help = 'Which group to include, supported groups include adhd, bipolar, anxiety, panic, ocd')
     parser.add_argument('--label_path', type=str, 
                         default = '/home/yl2428/ABCD/labels/2022_03_18_label_adhd_group_versus_nonclinical_controls.csv',
@@ -26,71 +29,63 @@ def parse_args(jupyter=False):
     parser.add_argument('--cov_path', type=str,
                         default = '/home/yl2428/ABCD/covariates_processed.csv',
                         help = 'metadata for subjects, storing the demographical data')
-    parser.add_argument('--outpath', type=str,
+    parser.add_argument('--out_path', type=str,
                         default = '/home/yl2428/ABCD/processed_data')
+    parser.add_argument('--save_path', type=str,
+                        default = '/home/yl2428/ABCD/results')
+    
+    parser.add_argument('--add_genomics', type=bool,
+                        default=True)
+    
+    parser.add_argument('--X_path', type=str, help = 'path of the processed X data, only specify this if you have run preprocess function',
+                        default= '/home/yl2428/ABCD/processed_data/new_genomic_all_9000_adhd_non_clinical_2_3_X.npy' )
+    parser.add_argument('--Y_path', type=str, help = 'path of the processed Y data, only specify this if you have run preprocess function',
+                        default= '/home/yl2428/ABCD/processed_data/new_genomic_all_9000_adhd_non_clinical_2_3_Y.npy' )
+    parser.add_argument('--subject_path', type=str, help ='path to save the subject of the splits', default = './')
 
     
     ####################### Preprocessing ########################
-    parser.add_argument('filter_threshold', type=int, default=9000, 
+    parser.add_argument('--filter_threshold', type=int, default=9000, 
                         help = 'QC control parameter. Normally for a two day frame, 8000 to 10000 will be good choices')
     parser.add_argument('--subseted_days', type=list,
                         default=[1,2],
                         help = 'which days are incoporated into the pipeline')
 
-
     ######################## Model ########################
-    parser.add_argument('--model', type=str, default="TorchMD_Norm")
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--num_interactions', type=int, default=6)
-    parser.add_argument('--adaptive_cutoff', action = 'store_true', default=False)
-    parser.add_argument('--short_cutoff_lower', type=float, default=0.0)
-    parser.add_argument('--short_cutoff_upper', type=float, default=8.0)
-    parser.add_argument('--long_cutoff_lower', type=float, default=0.0)
-    parser.add_argument('--long_cutoff_upper', type=float, default=10.0)
-    parser.add_argument('--otfcutoff', type=float, default=5.0)
-    parser.add_argument('--group_center', type=str, default='center_of_mass')
-    parser.add_argument('--hidden_channels', type=int, default=128)
-    parser.add_argument('--otf_graph', type = bool, default = True, 
-                        help = 'on the fly graph construction, only for TorchMDNorm')
-    parser.add_argument('--no_broadcast', action='store_true', default=False)
+    parser.add_argument('--pretrain', type = bool, default = False)
+    parser.add_argument('--freeze_epoches', type=int, default=0)
+    parser.add_argument('--model', type= str, default = 'XceptionTimePlus')
+    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--Grad_CAM_size', type=int, default=32, 
+                            help ='number of samples for grad cam to compute average over')
+    parser.add_argument('--Grad_CAM_layer', type = int, default = 0,
+                            help = 'Grad CAM targeting layer')
+    parser.add_argument('--step_importance_steps', type = int, default=60,
+                            help = "resolution of step importance, default is 60 measurements (1hr)")
+    ###################### Experiments Settings ############
+    parser.add_argument('--n_tests', type = int, default=1,
+                            help = "number of exp to run)")
+    parser.add_argument('--epochs', type = int, default=12,
+                            help = "number of epochs to train)")
+    parser.add_argument('--test_size', type = float, default=0.2,
+                            help = "size_of_the_test")
+    parser.add_argument('--class_balance', type = bool, default = True,
+                            help = "Perform class balancing or not")
+    parser.add_argument('--grad_cam', type = bool, default = True,
+                            help = "Perform Grad CAM or not")
+    parser.add_argument('--step_importance', type = bool, default = True,
+                            help = "Perform step_importanc or not")
+    parser.add_argument('--feature_importance', type = bool, default = True,
+                            help = "Perform feature_importance or not")
     
-    ######################## Optimizer ########################
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
-    parser.add_argument('--lr_patience', type=int, default=30)
-    parser.add_argument('--fp16', default=False, action='store_true')
-    parser.add_argument('--gradient_clip', default=False, action='store_true')
-    # parser.add_argument('--AMSGrad', default=False, action='store_true')
-    parser.add_argument('--warmup_steps', type = int, default = 1000)
-    parser.add_argument('--test_interval', type= int, default = 600)
-    
-    ######################## Training ########################
-    parser.add_argument('--inductive', action='store_true', default=False, help='inductive learning, only implemented for HUT Dataset')
-    parser.add_argument('--early_stop', action='store_true', default=False, help='early stopping, default patience is 30')
-    parser.add_argument('--early_stop_patience', type=int, default=500, help='early stopping, default patience is 30')
-    parser.add_argument('--max_epochs', type=int, default=10000)
-    parser.add_argument('--rho_tradeoff', type=float, default=.01)
-    parser.add_argument('--sample_size', type=int, default=-1)
-    parser.add_argument('--train_prop', type=float, default=0.95)
-    parser.add_argument('--debug', action='store_true', default=False)
-    parser.add_argument('--regress_forces', type=bool, default=True)
-    parser.add_argument('--num_workers', type=int, default=24) ## gpu device count
-    parser.add_argument('--local_rank', type=int, default=0) ## gpu device countpu device count
-    parser.add_argument('--master_port', type=str, default="1234") ## gpu device countpu device count
-    
-    ######################## Logging ########################
-    parser.add_argument('--wandb', action='store_true', default=False) ## gpu device count
-    parser.add_argument('--name', type=str, default=None, help='name of the experiment')
-    parser.add_argument('--notes', type=str, default=None, help='description of the experiment')
-    parser.add_argument('--tags', type=str, default=None, help='tags of the experiment')
-    parser.add_argument('--group', type=str, default=None, help='project name of the experiment')
-    parser.add_argument('--api_key', type=str, default=None, help='wandb api key')
+
 
     if(jupyter):
         args = parser.parse_args(args = [])
     else:
         args = parser.parse_args()
     
-    args.num_workers = min(args.num_workers,args.batch_size)
+    # args.num_workers = min(args.num_workers,args.batch_size)
     # if os.environ["LOCAL_RANK"] is not None:
     #     args.local_rank = int(os.environ["LOCAL_RANK"])
     config = {}
@@ -98,9 +93,18 @@ def parse_args(jupyter=False):
         config[key] = value
     return config
 
-def test():
+def main():
     config = parse_args()
-    process_data(config)
+    if config['preprocess']:
+        X_out, Y = process_data(config)
+    else:
+        X_out = np.load(config['X_path'])
+        Y = np.load(config['Y_path'])
+        clf = ABCDTrainer(config)
+        clf.fit(X_out, Y, n_tests = config['n_tests'], n_epochs = config['epochs'], 
+        test_size = config['test_size'], grad_cam = config['grad_cam'], step_importance = config['step_importance'],
+        feature_importance = config['feature_importance'])
+        
 
 if __name__ == '__main__':
-    test()    
+    main()    

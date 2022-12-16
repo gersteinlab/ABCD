@@ -29,7 +29,7 @@ def process_data(config):
 
     group = config['group']
     label_path = config['label_path']
-    raw_data_path = config['raw_path']
+    raw_data_path = config['raw_data_path']
 
     df_labels = pd.read_csv(label_path)
     path_of_data, labels = parse_labels(df_labels, raw_data_path)
@@ -95,14 +95,14 @@ def process_data(config):
     X_out = normalize(X, add_genomics = add_genomics)
     
     if add_genomics:
-        np.save(os.path.join(config['outpath'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_X.npy'), X_out)
-        np.save(os.path.join(config['outpath'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_subject.npy'), subjectList)
-        np.save(os.path.join(config['outpath'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_Y.npy'), Y)
+        np.save(os.path.join(config['out_path'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_X.npy'), X_out)
+        np.save(os.path.join(config['out_path'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_subject.npy'), subjectList)
+        np.save(os.path.join(config['out_path'],f'new_genomic_all_{filter_threshold}_{group}_non_clinical_2_3_Y.npy'), Y)
     else:
-        np.save(os.path.join(config['outpath'],f'all_{filter_threshold}_{group}_non_clinical_2_3_X.npy'), X_out)
-        np.save(os.path.join(config['outpath'],f'all_{filter_threshold}_{group}_non_clinical_2_3_subject.npy'), subjectList)
-        np.save(os.path.join(config['outpath'],f'all_{filter_threshold}_{group}_non_clinical_2_3_Y.npy'), Y)
+        np.save(os.path.join(config['out_path'],f'all_{filter_threshold}_{group}_non_clinical_2_3_X.npy'), X_out)
+        np.save(os.path.join(config['out_path'],f'all_{filter_threshold}_{group}_non_clinical_2_3_subject.npy'), subjectList)
+        np.save(os.path.join(config['out_path'],f'all_{filter_threshold}_{group}_non_clinical_2_3_Y.npy'), Y)
     
     print(f'Final data of size {X_out.shape[0]}')
-    return X_out
+    return X_out, Y
 

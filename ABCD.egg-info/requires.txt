@@ -1,0 +1,6 @@
+tsai==0.3.4
+sktime==0.14.1
+matplotlib
+pandas
+sklearn
+tqdm
