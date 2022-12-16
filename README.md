@@ -3,30 +3,30 @@
 This is the code base for adolecent brain cognitive developmental studies for the paper {Paper Tiltle}. 
 * Contributor: Yunyang Li, Jason Liu, Yuan Gao
 
-## Requirements:
+## Requirements
 ```
 tsai==0.3.1
 sktime==0.14.1
 ```
 
 
-## Installation:
+## Installation
 Create a conda environment with python 3.7:
 ```
 conda create -n ABCD python=3.7
 ```
-Activate the environment:
 
+Activate the environment:
 ```
 conda activate ABCD
 ```
 
-Install ABCD and requirements
+Install ABCD and requirements:
 ```
 pip install -e . --user
 ```
 
-## Example Running:
+## Example Running
 cd into the ABCD folder:
 ```
 cd ABCD
