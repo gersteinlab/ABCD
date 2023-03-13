@@ -101,7 +101,6 @@ def postprocessing(df, fitted = False, categorical = ['Level']):
     from sktime.forecasting.arima import ARIMA
 
     df = df.drop(['SleepStage', 'ShortWakes'], axis = 1)
-    print(df)
     imputation_dic = {'Intensity': Imputer(method="constant", missing_values = 0), 
                       'SleepLevel': Imputer(method="constant", missing_values = 0),
                      'Steps': Imputer(method="constant", missing_values = 0),
@@ -116,7 +115,8 @@ def postprocessing(df, fitted = False, categorical = ['Level']):
             df[cat] = les[index].transform(df[cat])
     # imp_mean = Imputer(method="forecaster", forcaster = ARIMA(order=(1, 1, 0), seasonal_order=(0, 1, 0, 12), suppress_warnings=True))
     imp_mean = Imputer(method ='drift')
-    df_fitted = imp_mean.fit_transform(df)
+    # df_fitted = imp_mean.fit_transform(df)
+    # df_fitted = df
     
     if not df_fitted.isna().any().any():
         imp_mean = Imputer(method="linear")

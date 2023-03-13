@@ -7,6 +7,7 @@ import os
 from tsai.all import *
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 my_setup()
 
 class ABCDTrainer:
@@ -21,9 +22,14 @@ class ABCDTrainer:
         self.lr = config['lr']
         self.loss_fn = LabelSmoothingCrossEntropyFlat()
         self.save_path = config['save_path']
-        self.feature_names = get_feature_names(mapped_from=['ts', 'covs', 'cog_task', 'family_his', 'score', 'genomic', 'ts_ind']
-                                            if config['add_genomics'] 
-                                            else ['ts', 'covs', 'cog_task', 'family_his', 'score', 'ts_ind'])
+        
+        if config['add_genomics'] and config['add_c4']:
+            self.feature_categories = ['ts', 'covs', 'cog_task', 'family_his', 'score', 'genomic', 'c4_feats', 'ts_ind']
+        elif config['add_c4']:
+            self.feature_categories = ['ts', 'covs', 'cog_task', 'family_his', 'score', 'c4_feats', 'ts_ind']
+        else:
+            self.feature_categories = ['ts', 'covs', 'cog_task', 'family_his', 'score', 'ts_ind']
+        self.feature_names = get_feature_names(mapped_from=self.feature_categories)
         self.class_balance = config['class_balance']
         self.config = config
         if not os.path.exists(self.save_path):
@@ -50,21 +56,27 @@ class ABCDTrainer:
             raise NotImplementedError('Model Not Implemented in this package yet')
     
     
-    def fit(self, X, Y, n_tests, n_epochs,
-            save_subject = False, ablation_ts = False, 
+    def fit(self, X_org, Y_org, n_tests, n_epochs,
+            save_subject = False, ablation = True, ablation_target = ['W', 'G', 'cog', 'C1', 'C2','C3',],
             test_size = 0.2, random_state = 9999, 
-            feature_importance = False, step_importance = False, grad_cam = False):
-        assert len(self.feature_names) == X.shape[1]
+            feature_importance = False, step_importance = False, grad_cam = False, record_best=False):
+        assert len(self.feature_names) == X_org.shape[1]
         seed =  [i for i in range(random_state, random_state - n_tests, -1)]
+        if ablation:
+            index, query = ablation_ts(X_org, ablation_target, self.feature_categories)
+            print(index, query)
+            X_raw = X_org[:, index]
+            self.feature_names = query
+        Y_raw = 1 - Y_org
         for i in range(n_tests):
             if i > 0:
                 for j in range(len(self.metrics)):
                     print(f'{i}/{n_tests} {self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f}')    
             else: print(f'{i}/{n_tests}')
-            Y = 1 - Y
-            
             if self.class_balance:
-                X, Y = class_balance(X, Y, seed = seed[i])
+                X, Y = class_balance(X_raw, Y_raw, seed = seed[i])
+            else:
+                X, Y = X_raw, Y_raw
             
             if save_subject:
                 if not os.path.exists(subjectpath):
@@ -72,11 +84,7 @@ class ABCDTrainer:
                 np.save(os.path.join(self.subject_path,  f'{i}_subjectlist.npy'), subjectList)
                 np.save(os.path.join(self.subject_path,  f'{i}_labels.npy'), Y)
             
-            if ablation_ts:
-                index, query = ablation_ts(X, ['W', 'G', 'cog', 'C1', 'C2','C3',], self.feature_names)
-                print(index, query)
-                X = X[:, index]
-                self.feature_names = query
+
             
             X_train , X_test, y_train, y_test = train_test_split(X, Y, stratify = Y, test_size = test_size, random_state = random_state)
             X, y, splits = combine_split_data([X_train, X_test], [y_train, y_test])
@@ -106,13 +114,96 @@ class ABCDTrainer:
             if grad_cam:
                 self.grad_cam(X, prefix = str(i), size = self.config['Grad_CAM_size'], layer = self.config['Grad_CAM_layer'])
             
+            if record_best:
+                aurocs = np.array([learn.recorder.values[i][2+3] for i in range(n_epochs)])
+                index = np.argmax(aurocs)
             for j in range(len(self.metrics)):
-                self._result[j].append(learn.recorder.values[-1][2+j])
+                if not record_best:
+                    self._result[j].append(learn.recorder.values[-1][2+j])
+                else:
+                    self._result[j].append(learn.recorder.values[index][2+j])
         
         print('>>>>>>>>>>>>>>> Final Result <<<<<<<<<<<<<<<<<<')
         for j in range(len(self.metrics)):
             print(f'\n{self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f} in {n_tests} tests')
             print(self._result[j])
+
+
+    def fit_sklearn(self, X_org, Y_org, n_tests, classifier = 'XGBoost',
+            save_subject = False, ablation = True, ablation_target = ['W', 'G', 'cog', 'C1', 'C2','C3',],
+            test_size = 0.2, random_state = 9999, ):
+        
+        assert len(self.feature_names) == X_org.shape[1]
+        seed =  [i for i in range(random_state, random_state - n_tests, -1)]
+        if ablation:
+            index, query = ablation_ts(X_org, ablation_target, self.feature_categories)
+            print(index, query)
+            X_raw = X_org[:, index]
+            self.feature_names = query
+        Y_raw = 1 - Y_org
+        for i in range(n_tests):
+            if i > 0:
+                for j in range(len(self.metrics)):
+                    print(f'{i}/{n_tests} {self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f}')    
+            else: print(f'{i}/{n_tests}')
+            if self.class_balance:
+                X, Y = class_balance(X_raw, Y_raw, seed = seed[i])
+            else:
+                X, Y = X_raw, Y_raw
+            
+            if save_subject:
+                if not os.path.exists(subjectpath):
+                    os.makedirs(subjectpath)
+                np.save(os.path.join(self.subject_path,  f'{i}_subjectlist.npy'), subjectList)
+                np.save(os.path.join(self.subject_path,  f'{i}_labels.npy'), Y)
+            
+
+            
+            X_train , X_test, y_train, y_test = train_test_split(X, Y, stratify = Y, test_size = test_size, random_state = random_state)
+            X_train = np.mean(X_train, axis = 1)
+            X_test = np,mean(X_test, axis = 1)
+            # Import the necessary modules
+            # Import the necessary modules
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.metrics import precision_score, recall_score, accuracy_score, roc_auc_score, f1_score, balanced_accuracy_score
+
+            if classifier =='XGBoost':
+                clf = XGBClassifier()
+            elif classifier == 'RF':
+            # Create a random forest classifier with default parameters
+                clf = RandomForestClassifier()
+            else:
+                raise NotImplementedError
+
+            # Fit the classifier on the training data
+            clf.fit(X_train, y_train)
+
+            # Predict on the test data
+            y_pred = clf.predict(X_test)
+            y_prob = clf.predict_proba(X_test)[:, 1]
+
+            # Calculate and print the metrics
+            precision = precision_score(y_test, y_pred)
+            recall = recall_score(y_test, y_pred)
+            accuracy = accuracy_score(y_test, y_pred)
+            auroc = roc_auc_score(y_test, y_prob)
+            f1 = f1_score(y_test, y_pred)
+            balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
+            result = [precision, recall, accuracy, auroc, f1, balanced_accuracy]
+            for j in range(len(self.metrics)):
+                self._result[j].append(result[j])
+            print(f"Precision: {precision:.2f}")
+            print(f"Recall: {recall:.2f}")
+            print(f"Accuracy: {accuracy:.2f}")
+            print(f"AUROC: {auroc:.2f}")
+            print(f"F1: {f1:.2f}")
+            print(f"Balanced Accuracy: {balanced_accuracy:.2f}")        
+        print('>>>>>>>>>>>>>>> Final Result <<<<<<<<<<<<<<<<<<')
+        for j in range(len(self.metrics)):
+            print(f'\n{self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f} in {n_tests} tests')
+            print(self._result[j])
+
+
 
     def grad_cam(self, X, size = 32, layer = 0, save = True, prefix = ''):
         '''

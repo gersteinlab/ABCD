@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 ts = ['Intensity', 'SleepLevel','Steps','Calories','HeartRate','SleepValue','METs']
 covs =['parent_div_cat_1.0', 'parent_div_cat_2.0', 'parent_div_cat_3.0',
        'parent_div_cat_4.0', 'parent_div_cat_5.0', 'parent_div_cat_6.0',
@@ -20,6 +21,22 @@ grouping = {'W': ts + ts_ind, 'C1': ['parent_div_cat_1.0', 'parent_div_cat_2.0',
     'race_eth_cat_3.0', 'race_eth_cat_4.0', 'race_eth_cat_5.0', 'race_eth_cat_nan', 'sex_F', 'family_income',
     'interview_age', 'parent_grade'] , 'C2': ['famhis_bip', 'famhis_schiz', 'famhis_antisocial', 'famhis_nerves',
     'famhis_treatment', 'famhis_hospital', 'famhis_suicide','adopted'], 'cog': cog_task, 'C3': score, 'G' : genomic}
+
+def get_c4_feature_names_and_cluter_index(cluster_ident = '/gpfs/gibbs/pi/gerstein/jjl86/data/ABCD/wearable/features/v1v2.features.02172023/features.clusters.tsv',
+                                         feature_meta = '/gpfs/gibbs/pi/gerstein/jjl86/data/ABCD/ABCD_fitbit_individual_aggregate_fbdss_fbdpas_summarystat_features_05132022_normalized.csv'):
+    data_1 = pd.read_csv(cluster_ident, sep = '\t')
+    data_2 = pd.read_csv(feature_meta, index_col = 0)
+    names = list(data_2)[1:]
+    grouping = {}
+    for num in data_1['cluster'].unique():
+        all_list = list(data_1.loc[data_1['cluster']==num]['feature'])
+        subsetted_list = [item for item in all_list if item in names]
+        grouping[f'C4_{num}'] = subsetted_list
+    return names, grouping
+    
+c4_feats, c4_grouping = get_c4_feature_names_and_cluter_index()
+grouping.update(c4_grouping)
+
 
 def class_balance(X, Y, subjectList = None, seed = 42):
     '''

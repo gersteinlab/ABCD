@@ -15,11 +15,5 @@ setup(name='ABCD',
       install_requires=[
           'tsai==0.3.1',
           'sktime==0.14.1',
-          'matplotlib',
-          'pandas',
-          'sklearn',
-          'tqdm',
-          'IPython',
-          'ipykenel'
       ],)
     #   python_requires='>=3.7,<3.11')
