@@ -8,6 +8,7 @@ from tsai.all import *
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+
 my_setup()
 
 class ABCDTrainer:
@@ -168,6 +169,7 @@ class ABCDTrainer:
             from sklearn.metrics import precision_score, recall_score, accuracy_score, roc_auc_score, f1_score, balanced_accuracy_score
 
             if classifier =='XGBoost':
+                from xgboost import XGBClassifier
                 clf = XGBClassifier()
             elif classifier == 'RF':
             # Create a random forest classifier with default parameters
