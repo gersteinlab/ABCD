@@ -160,8 +160,8 @@ class ABCDTrainer:
 
             
             X_train , X_test, y_train, y_test = train_test_split(X, Y, stratify = Y, test_size = test_size, random_state = random_state)
-            X_train = np.mean(X_train, axis = 1)
-            X_test = np,mean(X_test, axis = 1)
+            X_train = np.mean(X_train, axis = 2)
+            X_test = np.mean(X_test, axis = 2)
             # Import the necessary modules
             # Import the necessary modules
             from sklearn.ensemble import RandomForestClassifier
