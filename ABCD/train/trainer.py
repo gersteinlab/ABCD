@@ -56,7 +56,29 @@ class ABCDTrainer:
         else:
             raise NotImplementedError('Model Not Implemented in this package yet')
     
+    def predict(self, X_org, Y_org=None, save_subject = False, ablation = True, ablation_target = ['W', 'G', 'cog', 'C1', 'C2','C3',],):
+        if ablation:
+            index, query = ablation_ts(X_org, ablation_target, self.feature_categories)
+            print(index, query)
+            X_raw = X_org[:, index]
+            self.feature_names = query
+        else:
+            X_raw = X_org
+        test_probas, test_targets, test_preds = self._learn.get_X_preds(X_raw, with_decoded=True)
+        return test_probas, test_targets, test_preds 
     
+    def predict_sklearn(self, X_org, Y_org=None, save_subject = False, ablation = True, ablation_target = ['W', 'G', 'cog', 'C1', 'C2','C3',],):
+        if ablation:
+            index, query = ablation_ts(X_org, ablation_target, self.feature_categories)
+            print(index, query)
+            X_raw = X_org[:, index]
+            self.feature_names = query
+        else:
+            X_raw = X_org
+        X_raw = np.mean(X_raw, axis = 2)
+        test_probas = self._learn.predict_proba(X_raw)
+        return test_probas
+        
     def fit(self, X_org, Y_org, n_tests, n_epochs,
             save_subject = False, ablation = True, ablation_target = ['W', 'G', 'cog', 'C1', 'C2','C3',],
             test_size = 0.2, random_state = 9999, 
@@ -89,7 +111,9 @@ class ABCDTrainer:
             
             X_train , X_test, y_train, y_test = train_test_split(X, Y, stratify = Y, test_size = test_size, random_state = random_state)
             X, y, splits = combine_split_data([X_train, X_test], [y_train, y_test])
+            self.X_train = X_train
             self.X_test = X_test
+            self.y_train = y_train
             self.y_test = y_test
             tfms = [None, TSClassification()]
             dls = get_ts_dls(X, y, splits=splits, tfms=tfms) 
@@ -127,7 +151,7 @@ class ABCDTrainer:
         print('>>>>>>>>>>>>>>> Final Result <<<<<<<<<<<<<<<<<<')
         for j in range(len(self.metrics)):
             print(f'\n{self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f} in {n_tests} tests')
-            print(self._result[j])
+            [print(o) for o in self._result[j]]
 
 
     def fit_sklearn(self, X_org, Y_org, n_tests, classifier = 'XGBoost',
@@ -163,6 +187,10 @@ class ABCDTrainer:
             X_train , X_test, y_train, y_test = train_test_split(X, Y, stratify = Y, test_size = test_size, random_state = random_state)
             X_train = np.mean(X_train, axis = 2)
             X_test = np.mean(X_test, axis = 2)
+            self.X_train = X_train
+            self.X_test = X_test
+            self.y_train = y_train
+            self.y_test = y_test
             # Import the necessary modules
             # Import the necessary modules
             from sklearn.ensemble import RandomForestClassifier
@@ -176,7 +204,7 @@ class ABCDTrainer:
                 clf = RandomForestClassifier()
             else:
                 raise NotImplementedError
-
+            self._learn = clf
             # Fit the classifier on the training data
             clf.fit(X_train, y_train)
 
@@ -203,19 +231,18 @@ class ABCDTrainer:
         print('>>>>>>>>>>>>>>> Final Result <<<<<<<<<<<<<<<<<<')
         for j in range(len(self.metrics)):
             print(f'\n{self.metrics[j]}: {np.mean(self._result[j]):.3f} +/- {np.std(self._result[j]):.3f} in {n_tests} tests')
-            print(self._result[j])
+            [print(o) for o in self._result[j]]
 
 
 
-    def grad_cam(self, X, size = 32, layer = 0, save = True, prefix = ''):
+    def grad_cam(self, X, size = 32, layer = 0, save = True, prefix = '', relu = False):
         '''
         X of size shape [N, C, L]
         Average of gram cap values with
         '''
-        print(f'Performing Gard CAM of {prefix}...')
+        print(f'Performing Grad CAM of {prefix}...')
         data = torch.Tensor(X[0:0+size]).cuda()
         flag = False
-        out = torch.zeros(X.shape[layer], X.shape[2])
         with Hook(self._learn.model[layer]) as hook:
             for i in range(data.shape[0]):
                 with HookBwd(self._learn.model[layer]) as hookg:
@@ -231,12 +258,14 @@ class ABCDTrainer:
         with torch.no_grad():
             w = grad.mean(dim=[2], keepdim=True) # average gradient by length [N, C, L(summed out)]
             
-            cam_map = F.relu(w * act).sum((0,1)).detach().cpu().numpy() 
+            cam_map = F.relu(w * act).mean((0,1)).detach().cpu().numpy() if relu else (w * act).mean((0,1)).detach().cpu().numpy()
         if save:
+            np.save(os.path.join(self.save_path, f"{prefix}_GradCAM.npy"), cam_map)
             plt.plot(cam_map)
             plt.title('GradCAM Plot')
             plt.savefig(os.path.join(self.save_path, f"{prefix}_GradCAM.pdf"))
         print('Done') 
+        return cam_map
 
     def feature_importance(self, random_state = 44, method = 'permutation', save = True, prefix = ''):
         print(f'Performing Feature Importance of {prefix}...')
@@ -245,6 +274,7 @@ class ABCDTrainer:
         if save:
             df.to_csv(os.path.join(self.save_path,f'{prefix}_{self.model}_feature_importance_{method}.csv'))
         print('Done') 
+        return df
     
     def step_importance(self, random_state = 44, n_steps=60, method = 'permutation', save = True, prefix = ''):
         print(f'Performing Step Importance of {prefix}...')
@@ -253,6 +283,7 @@ class ABCDTrainer:
         if save:
             df.to_csv(os.path.join(self.save_path,f'{prefix}_{self.model}_step_importance_{method}.csv'))
         print('Done') 
+        return df
 
 if __name__ == '__main__':
     X = np.random.randn(300, 2, 50)
@@ -267,6 +298,4 @@ if __name__ == '__main__':
             # metrics = accuracy,)
             metrics= RocAucBinary())
     learn.fit_one_cycle(2, 1e-4)
-    learn.step_importance()
-        
-        
+    learn.step_importance()    

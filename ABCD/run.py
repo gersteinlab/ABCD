@@ -18,24 +18,24 @@ def seed_everything(seed):
 def parse_args(jupyter=False):
     parser = argparse.ArgumentParser()
     ######################## DATA Loading ########################
-    parser.add_argument('--preprocess', type = bool, default=False, help='preprocess the data or not')
-    parser.add_argument('--group', type=str, default='adhd', help = 'Which group to include, supported groups include adhd, bipolar, anxiety, panic, ocd')
+    parser.add_argument('--preprocess', type = int, default=1, help='preprocess the data or not')
+    parser.add_argument('--group', type=str, default='anxiety', help = 'Which group to include, supported groups include adhd, bipolar, anxiety, panic, ocd')
     parser.add_argument('--label_path', type=str, 
-                        default = '/home/yl2428/ABCD/labels/2022_03_18_label_adhd_group_versus_nonclinical_controls.csv',
+                        default = '/gpfs/slayman/pi/gerstein/jjl86/DATA/ABCD/labels/2022_03_18_label_anxiety_group_versus_nonclinical_controls.csv,
                         help = 'path of the label files, 1 for disease, 0 for ctrl')
     parser.add_argument('--raw_data_path', type=str,
-                        default = '/home/yl2428/ABCD/aurora01_combined',
+                        default = '/gpfs/slayman/pi/gerstein/jjl86/DATA/ABCD/aurora01_combined',
                         help = 'raw data path')
     parser.add_argument('--cov_path', type=str,
-                        default = '/home/yl2428/ABCD/covariates_processed.csv',
+                        default = '/gpfs/slayman/pi/gerstein/jjl86/DATA/ABCD/covariates_processed.csv',
                         help = 'metadata for subjects, storing the demographical data')
     parser.add_argument('--out_path', type=str,
-                        default = '/home/yl2428/ABCD/processed_data')
+                        default = '/gpfs/slayman/pi/gerstein/jjl86/DATA/ABCD/processed_data')
     parser.add_argument('--save_path', type=str,
-                        default = '/home/yl2428/ABCD/results')
+                        default = '/gpfs/slayman/pi/gerstein/jjl86/DATA/ABCD/results')
     
-    parser.add_argument('--add_genomics', type=bool,
-                        default=True)
+    parser.add_argument('--add_genomics', type=int,
+                        default=1)
     
     parser.add_argument('--X_path', type=str, help = 'path of the processed X data, only specify this if you have run preprocess function',
                         default= '/home/yl2428/ABCD/processed_data/new_genomic_all_9000_adhd_non_clinical_2_3_X.npy' )
@@ -52,7 +52,7 @@ def parse_args(jupyter=False):
                         help = 'which days are incoporated into the pipeline')
 
     ######################## Model ########################
-    parser.add_argument('--pretrain', type = bool, default = False)
+    parser.add_argument('--pretrain', type = int, default = 0)
     parser.add_argument('--freeze_epoches', type=int, default=0)
     parser.add_argument('--model', type= str, default = 'XceptionTimePlus')
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -69,13 +69,13 @@ def parse_args(jupyter=False):
                             help = "number of epochs to train)")
     parser.add_argument('--test_size', type = float, default=0.2,
                             help = "size_of_the_test")
-    parser.add_argument('--class_balance', type = bool, default = True,
+    parser.add_argument('--class_balance', type = int, default = 0,
                             help = "Perform class balancing or not")
-    parser.add_argument('--grad_cam', type = bool, default = True,
+    parser.add_argument('--grad_cam', type = int, default = 0,
                             help = "Perform Grad CAM or not")
-    parser.add_argument('--step_importance', type = bool, default = True,
+    parser.add_argument('--step_importance', type = int, default = 0,
                             help = "Perform step_importanc or not")
-    parser.add_argument('--feature_importance', type = bool, default = True,
+    parser.add_argument('--feature_importance', type = int, default = 0,
                             help = "Perform feature_importance or not")
     
 
@@ -97,13 +97,13 @@ def main():
     config = parse_args()
     if config['preprocess']:
         X_out, Y = process_data(config)
-    else:
-        X_out = np.load(config['X_path'])
-        Y = np.load(config['Y_path'])
-        clf = ABCDTrainer(config)
-        clf.fit(X_out, Y, n_tests = config['n_tests'], n_epochs = config['epochs'], 
-        test_size = config['test_size'], grad_cam = config['grad_cam'], step_importance = config['step_importance'],
-        feature_importance = config['feature_importance'])
+    # else:
+    #     X_out = np.load(config['X_path'])
+    #     Y = np.load(config['Y_path'])
+    #     clf = ABCDTrainer(config)
+    #     clf.fit(X_out, Y, n_tests = config['n_tests'], n_epochs = config['epochs'], 
+    #     test_size = config['test_size'], grad_cam = config['grad_cam'], step_importance = config['step_importance'],
+    #     feature_importance = config['feature_importance'])
         
 
 if __name__ == '__main__':
