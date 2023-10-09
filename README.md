@@ -1,8 +1,5 @@
 
-# ABCD
-This is the code base for adolecent brain cognitive developmental studies for the paper {Paper Tiltle}. 
-* Contributor: Yunyang Li, Jason Liu, Yuan Gao
-* Correspondence: yunyang.li@yale.edu, jason.j.liu@yale.edu
+# Digital phenotyping from wearables using AI characterizes psychiatric disorders and identifies genetic associations
 
 ## Requirements
 ```
