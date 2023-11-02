@@ -80,6 +80,7 @@ python run.py --X_path [PATH_OF_X] --Y_path [PATH_OF_Y] --grad_cam True
 ## GWAS 
 
 ### Univariate GWAS
+For univariate GWAS we employed [plink2] (https://www.cog-genomics.org/plink/2.0/)
 
 #### Binary trait 
 
