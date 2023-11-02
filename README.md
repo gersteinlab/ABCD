@@ -76,3 +76,14 @@ python run.py --X_path [PATH_OF_X] --Y_path [PATH_OF_Y] --feature_importance Tru
 ```
 python run.py --X_path [PATH_OF_X] --Y_path [PATH_OF_Y] --grad_cam True
 ```
+
+## GWAS 
+
+### Univariate GWAS
+
+#### Binary trait 
+
+#### Continuous trait
+
+
+### Multivariate GWAS
