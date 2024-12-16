@@ -2,6 +2,7 @@
 
 Psychiatric disorders are influenced by genetic and environmental factors. However, their study is hindered by limitations on precisely characterizing human behavior. New technologies such as wearable sensors show promise in surmounting these limitations in that they measure heterogeneous behavior in a quantitative and unbiased fashion. Here, we analyze wearable and genetic data from the Adolescent Brain Cognitive Development (ABCD) study. Leveraging >250 wearable-derived features as digital phenotypes, we show that an interpretable AI framework can objectively classify adolescents with psychiatric disorders more accurately than previously possible. To relate digital phenotypes to the underlying genetics, we show how they can be employed in univariate and multivariate GWAS. Doing so, we identify 16 significant genetic loci and 37 psychiatric-associated genes, including ELFN1 and ADORA3, demonstrating that continuous, wearable-derived features give greater detection power than traditional, case-control GWAS. Overall, we show how wearable technology can help uncover new linkages between behavior and genetics.
 
+Please contact mark@gersteinlab.org for additional questions or requests.
 
 ## GWAS 
 
